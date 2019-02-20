@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:async';
 import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main(List<String> args) {
   runApp(MaterialApp(
@@ -16,6 +17,32 @@ class IOFlutter extends StatefulWidget {
 
 class _IOFlutterState extends State<IOFlutter> {
   var _enterDataField = new TextEditingController();
+  var _sharedPrefsController = new TextEditingController();
+  String _savedData = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _readData();
+  }
+
+  _readData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      if (prefs.getString('my_key') != null &&
+          prefs.getString('my_key').isNotEmpty)
+        _savedData = prefs.getString('my_key');
+      else {
+        _savedData = 'No data';
+      }
+    });
+  }
+
+  _writeData(String message) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setString('my_key', message);
+    _readData();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +69,7 @@ class _IOFlutterState extends State<IOFlutter> {
               onPressed: () {
                 String text = _enterDataField.text;
                 if (text.isNotEmpty) writeData(text);
+                setState(() {});
               },
               child: new Text("Save Data to file"),
             ),
@@ -51,13 +79,26 @@ class _IOFlutterState extends State<IOFlutter> {
             new FutureBuilder(
               future: readData(),
               builder: (BuildContext context, AsyncSnapshot<String> data) {
-                if(data.hasData != null){
+                if (data.hasData != null) {
                   return new Text('Old Data: ${data.data.toString()}');
-                } else{
+                } else {
                   return new Text("File is empty");
                 }
               },
             ),
+            new TextField(
+              controller: _sharedPrefsController,
+              decoration: new InputDecoration(labelText: 'Enter Something...'),
+            ),
+            new IconButton(
+              icon: new Icon(Icons.save),
+              onPressed: () {
+                print(_sharedPrefsController.text);
+                _writeData(_sharedPrefsController.text);
+                print('Data saved');
+              },
+            ),
+            new Text("SharedPrefs data: $_savedData"),
           ],
         ),
       ),
